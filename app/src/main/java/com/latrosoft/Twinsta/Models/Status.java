@@ -7,7 +7,7 @@ public class Status {
     private File file;
 //    private Bitmap thumbnail;
     private String title;
-    private String path;
+    private  String path;
     private boolean isVideo;
 
     public Status(File file, String title, String path) {
@@ -42,7 +42,7 @@ public class Status {
         this.title = title;
     }
 
-    public String getPath() {
+    public  String getPath() {
         return path;
     }
 

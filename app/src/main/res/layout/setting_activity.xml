@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".SettingsActivity">
+<com.google.android.material.appbar.AppBarLayout
+    android:id="@+id/settingactionbar"
+    android:layout_width="match_parent"
+    android:layout_height="?actionBarSize">
+  <com.google.android.material.appbar.MaterialToolbar
+
+      android:layout_width="match_parent"
+      android:layout_height="?actionBarSize">
+      <ImageView
+
+         android:clickable="true"
+          android:src="@drawable/back_white"
+          android:id="@+id/back"
+          android:gravity="center"
+          android:layout_width="32dp"
+          android:layout_height="32dp">
+
+      </ImageView>
+      <TextView
+          android:layout_marginLeft="30dp"
+          android:layout_width="match_parent"
+          android:layout_height="match_parent"
+          android:textColor="@color/white"
+          android:textStyle="bold"
+          android:padding="2dp"
+          android:text="@string/settings"
+          android:gravity="center_vertical"
+          style="@android:style/TextAppearance.Large"
+          tools:ignore="RtlCompat" />
+  </com.google.android.material.appbar.MaterialToolbar>
+</com.google.android.material.appbar.AppBarLayout>
+    <LinearLayout
+        android:orientation="vertical"
+        android:padding="20dp"
+        android:layout_below="@id/settingactionbar"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <TextView
+            android:textSize="16sp"
+            android:text="Path"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+        </TextView>
+
+        <EditText
+            android:id="@+id/path"
+            android:text="WhatsApp/Media/.Statuses"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"></EditText>
+    </LinearLayout>
+
+
+
+</RelativeLayout>

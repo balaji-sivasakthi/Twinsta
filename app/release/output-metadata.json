@@ -10,9 +10,9 @@
     {
       "type": "SINGLE",
       "filters": [],
-      "versionCode": 1,
-      "versionName": "1.0",
-      "outputFile": "WhatsApp_Status_Downloader_v1.0_04022021-release.apk"
+      "versionCode": 3,
+      "versionName": "1.1",
+      "outputFile": "WhatsApp_Status_Downloader_v1.1_20022021-release.apk"
     }
   ]
 }

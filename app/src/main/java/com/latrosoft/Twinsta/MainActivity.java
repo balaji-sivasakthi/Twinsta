@@ -5,14 +5,21 @@ import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.RadioGroup;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.view.menu.MenuBuilder;
 import androidx.core.app.ActivityCompat;
@@ -42,11 +49,13 @@ import java.util.Objects;
 
 import com.latrosoft.Twinsta.R;
 
+import org.w3c.dom.Comment;
+
 public class MainActivity extends AppCompatActivity{
     private AdView mAdView;
     private ViewPager viewPager;
     private long back_pressed;
-
+    private CheckBox mCheckBox;
     private static final int REQUEST_PERMISSIONS = 1234;
     private static final String[] PERMISSIONS = {
             Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -57,6 +66,20 @@ public class MainActivity extends AppCompatActivity{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        mCheckBox=(CheckBox)findViewById(R.id.checkB);
+       mCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+           @Override
+           public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+               if (isChecked){
+                   Common.setmString("WhatsApp Business/Media/.Statuses");
+                   Toast.makeText(MainActivity.this,"MmString Value: "+Common.getmString(),Toast.LENGTH_SHORT);
+               }else{
+                   Common.setmString("WhatsApp/Media/.Statuses");
+                   Toast.makeText(MainActivity.this,"MmString Value: "+Common.getmString(),Toast.LENGTH_SHORT);
+               }
+           }
+       });
+
 
         ReviewManager manager = ReviewManagerFactory.create(this);
         Task<ReviewInfo> request = manager.requestReviewFlow();
@@ -108,6 +131,8 @@ public class MainActivity extends AppCompatActivity{
         tabLayout.addTab(tabLayout.newTab().setText(getString(R.string.images)));
         tabLayout.addTab(tabLayout.newTab().setText(getString(R.string.videos)));
         tabLayout.addTab(tabLayout.newTab().setText(getString(R.string.saved_files)));
+        tabLayout.addTab(tabLayout.newTab().setText("Insta"));
+
         PagerAdapter adapter = new PageAdapter(getSupportFragmentManager(), tabLayout.getTabCount());
         viewPager.setAdapter(adapter);
 
@@ -151,7 +176,9 @@ public class MainActivity extends AppCompatActivity{
         switch (item.getItemId()) {
 
             case R.id.menu_rateUs:
-                Toast.makeText(this, "Rate Us", Toast.LENGTH_SHORT).show();
+                Uri uri = Uri.parse("https://play.google.com/store/apps/details?id=com.latrosoft.Twinsta");
+                Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                startActivity(intent);
                 return true;
             case R.id.menu_share:
                 Intent shareIntent = new Intent(android.content.Intent.ACTION_SEND);
@@ -161,6 +188,12 @@ public class MainActivity extends AppCompatActivity{
                         "*Get the Free App from Google Play Store for Save Whatsapp Status* \n\n" + app_url);
                 shareIntent.putExtra(Intent.EXTRA_SUBJECT, "WhatsApp Status Saver");
                 startActivity(Intent.createChooser(shareIntent, "Share via"));
+
+                return true;
+            case R.id.menu_settings:
+                    Intent i = new Intent(MainActivity.this,SettingsActivity.class);
+                    startActivity(i);
+
 
                 return true;
             /*case R.id.menu_privacyPolicy:

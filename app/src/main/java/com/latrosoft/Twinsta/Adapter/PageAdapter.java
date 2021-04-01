@@ -6,6 +6,7 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentPagerAdapter;
 
 import com.latrosoft.Twinsta.Fragments.ImageFragment;
+import com.latrosoft.Twinsta.Fragments.InstaFragment;
 import com.latrosoft.Twinsta.Fragments.SavedFilesFragment;
 import com.latrosoft.Twinsta.Fragments.VideoFragment;
 
@@ -24,8 +25,11 @@ public class PageAdapter extends FragmentPagerAdapter {
 
         if (position == 1) {
             return new VideoFragment();
-        }else if (position == 2)
+        }else if (position == 2) {
             return new SavedFilesFragment();
+        } else if (position == 3) {
+            return new InstaFragment();
+        }
         return new ImageFragment();
 
     }

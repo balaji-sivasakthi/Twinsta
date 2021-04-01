@@ -25,20 +25,29 @@ import java.util.Locale;
 import java.util.Random;
 
 import com.latrosoft.Twinsta.R;
+import com.latrosoft.Twinsta.SettingsActivity;
 
 import static android.content.Context.NOTIFICATION_SERVICE;
 
 public class Common {
-
+    private static String mString="WhatsApp Business/Media/.Statuses";
     static final int MINI_KIND = 1;
     static final int MICRO_KIND = 3;
+
+    public static String getmString() {
+        return mString;
+    }
+
+    public static void setmString(String mString) {
+       Common.mString=mString;
+    }
 
     public static final int GRID_COUNT = 2;
 
     private static final String CHANNEL_NAME = "BALAJI";
 
     public static final File STATUS_DIRECTORY = new File(Environment.getExternalStorageDirectory() +
-            File.separator + "WhatsApp/Media/.Statuses");
+            File.separator + mString );
 
     public static String APP_DIR;
 

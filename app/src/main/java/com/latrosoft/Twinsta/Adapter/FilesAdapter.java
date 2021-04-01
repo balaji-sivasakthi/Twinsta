@@ -30,7 +30,6 @@ import com.latrosoft.Twinsta.Models.Status;
 import com.latrosoft.Twinsta.R;
 
 public class FilesAdapter extends RecyclerView.Adapter<ItemViewHolder> {
-    private InterstitialAd mInterstitialAd;
 
     private final List<Status> imagesList;
     private Context context;

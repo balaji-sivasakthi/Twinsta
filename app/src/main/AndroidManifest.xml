@@ -28,7 +28,9 @@
             </intent-filter>
         </activity>
         <activity android:name="com.latrosoft.Twinsta.MainActivity" />
-
+        <activity android:name="com.latrosoft.Twinsta.SettingsActivity"
+            android:parentActivityName=".MainActivity">
+        </activity>
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="com.latrosoft.Twinsta.provider"
