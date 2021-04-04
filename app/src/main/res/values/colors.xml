@@ -8,5 +8,6 @@
     <color name="dark">#AAAA</color>
     <color name="black">#000</color>
     <color name="holo_orange">@android:color/holo_orange_light</color>
+    <color name="trans">#00000000</color>
 
 </resources>

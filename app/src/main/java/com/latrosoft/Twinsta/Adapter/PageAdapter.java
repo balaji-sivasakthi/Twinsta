@@ -24,13 +24,21 @@ public class PageAdapter extends FragmentPagerAdapter {
     public Fragment getItem(int position) {
 
         if (position == 1) {
-            return new VideoFragment();
+            return new ImageFragment();
+
         }else if (position == 2) {
-            return new SavedFilesFragment();
+
+            return new VideoFragment();
+
         } else if (position == 3) {
-            return new InstaFragment();
+            return new SavedFilesFragment();
+
+
+        }else if (position==4){
+
         }
-        return new ImageFragment();
+
+        return new InstaFragment();
 
     }
 

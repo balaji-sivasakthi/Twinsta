@@ -23,6 +23,7 @@
 
       </ImageView>
       <TextView
+
           android:layout_marginLeft="30dp"
           android:layout_width="match_parent"
           android:layout_height="match_parent"
@@ -51,6 +52,7 @@
         </TextView>
 
         <EditText
+            android:enabled="false"
             android:id="@+id/path"
             android:text="WhatsApp/Media/.Statuses"
             android:layout_width="match_parent"

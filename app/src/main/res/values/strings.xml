@@ -34,5 +34,7 @@
     <string name="contact">Contact</string>
     <string name="developer">Developer</string>
     <string name="check_for_update">Check for update</string>
+     <string name="paste_link">Paste Link</string>
+     <string name="download">Download</string>
 
-</resources>
+ </resources>

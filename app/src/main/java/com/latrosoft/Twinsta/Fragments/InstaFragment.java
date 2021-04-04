@@ -1,60 +1,53 @@
 package com.latrosoft.Twinsta.Fragments;
 
-import android.annotation.SuppressLint;
-import android.app.Activity;
+import android.Manifest;
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
-import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ClipboardManager;
-import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.ServiceConnection;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.drawable.Drawable;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Environment;
-import android.os.IBinder;
-import android.os.ResultReceiver;
-import android.provider.MediaStore;
-import android.text.Html;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowManager;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.widget.AppCompatButton;
 import androidx.cardview.widget.CardView;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentActivity;
 
-import com.bumptech.glide.Glide;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.github.lzyzsd.circleprogress.DonutProgress;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.latrosoft.Twinsta.Database.DBController;
-import com.latrosoft.Twinsta.Database.InstaImage;
-import com.latrosoft.Twinsta.MainActivity;
+import com.google.gson.Gson;
+import com.karumi.dexter.Dexter;
+import com.karumi.dexter.MultiplePermissionsReport;
+import com.karumi.dexter.PermissionToken;
+import com.karumi.dexter.listener.DexterError;
+import com.karumi.dexter.listener.PermissionRequestErrorListener;
+import com.karumi.dexter.listener.multi.MultiplePermissionsListener;
+import com.latrosoft.Twinsta.InstaWebviewActivity;
+import com.latrosoft.Twinsta.Models.ResponseModel;
 import com.latrosoft.Twinsta.R;
-import com.latrosoft.Twinsta.Service.DownloadService;
-import com.latrosoft.Twinsta.Service.FileDownloaderService;
-import com.latrosoft.Twinsta.Utils.ThumbnailUtils;
+import com.squareup.picasso.Picasso;
 
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
+import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -63,503 +56,318 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 import java.net.URLConnection;
+import java.text.Format;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.logging.Handler;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import io.github.rockerhieu.emojicon.EmojiconTextView;
+import de.hdodenhof.circleimageview.CircleImageView;
 
 import static android.content.Context.CLIPBOARD_SERVICE;
-
 public class InstaFragment extends Fragment {
-    DonutProgress circularProgress;
-    private FragmentActivity mContext;
-    private TextView tvCopy;
-    private EditText etURL;
-    static ProgressDialog mProgressDialog = null;
-    AppCompatButton btnCheckURL, btnPaste, btnguide;
-    ImageView ivImage, ivPlayBtn, ivDel;
-    private ClipboardManager clipBoard;
-    private boolean type;
-    FloatingActionButton fabDownload;
-    //DB
-    private DBController dbcon;
-    private Activity activity;
-    ProgressBar mProgressBar;
+    private View rootView;
+    LinearLayout llPasteLink, llDownloadButton;
+    EditText etPasteLink;
+    String url = "";
+    String newurl;
+    String key = null;
+    SharedPreferences preferences ;
 
-    DownloadService mService;
-    boolean mBound = false;
-    TextView tvProgress, tvCancel;
-    LinearLayout llDownloadLayout;
-    CardView cvdownloadView, cvGuide;
+    DonutProgress donut_progress;
 
-    String mPreviousText = "";
-    private int progress;
-    String pattern = "https://www.instagram.com/p/.";
+    CardView CardViewData;
+    AlertDialog.Builder alertdialog;
 
-    EmojiconTextView tvCaption;
-    private boolean isGuideVisible = false;
+    private Context mContext;
+
+    static ProgressDialog mprogressDialog;
+    // Progress Dialog
+    private ProgressDialog pDialog;
+    public static final int progress_bar_type = 0;
+
+
+    ImageView ivproductImage;
+    TextView tvUsername, tvCaption;
+    CircleImageView ivProfilePic;
+
+    String imgPath;
+    String videoPath;
+    String profilePath;
+    String contentType;
+    JSONObject jobj;
+
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        mContext = getActivity();
+    }
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View rootView = inflater.inflate(R.layout.insta, container, false);
-        mContext = getActivity();
-
-        circularProgress = (DonutProgress) rootView.findViewById(R.id.donut_progress);
-        tvCaption = (EmojiconTextView) rootView.findViewById(R.id.tv_caption);
-
-        btnCheckURL = rootView.findViewById(R.id.btnCheckURL);
-        etURL = (EditText) rootView.findViewById(R.id.edittxturl);
-
-        ivImage = (ImageView) rootView.findViewById(R.id.ivImage);
-        btnPaste = rootView.findViewById(R.id.btnPaste);
-        btnguide = rootView.findViewById(R.id.btnguide);
-
-        fabDownload = (FloatingActionButton) rootView.findViewById(R.id.fab);
-        ivPlayBtn = (ImageView) rootView.findViewById(R.id.ivPlayBtn);
-        ivDel = (ImageView) rootView.findViewById(R.id.ivDel);
-
-        ivPlayBtn.setVisibility(View.INVISIBLE);
-        clipBoard = (ClipboardManager) mContext.getSystemService(CLIPBOARD_SERVICE);
-        mProgressBar = (ProgressBar) rootView.findViewById(R.id.progressBar);
-        tvProgress = (TextView) rootView.findViewById(R.id.tvProgress);
-        tvCancel = (TextView) rootView.findViewById(R.id.tvCancel);
-        tvCopy = (TextView) rootView.findViewById(R.id.tvCopy);
-        cvdownloadView = (CardView) rootView.findViewById(R.id.cv_downloadView);
-
-
-        llDownloadLayout = (LinearLayout) rootView.findViewById(R.id.llDownloadLayout);
-
-        mContext.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
-        Intent intent = new Intent(mContext, DownloadService.class);
-        mContext.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
-
-        //DB
-        dbcon = new DBController(mContext);
-
-        btnguide.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-
-                if (isGuideVisible) {
-                    isGuideVisible = false;
-                } else {
-                    isGuideVisible = true;
-                }
+        if (rootView == null) {
+            rootView = inflater.inflate(R.layout.insta, container, false);
+            initialiseView();
+            return rootView;
+        } else {
+            if (rootView.getParent() != null) {
+                ((ViewGroup) rootView.getParent()).removeView(rootView);
             }
-        });
+            return rootView;
+        }
+    }
 
-        ivDel.setOnClickListener(new View.OnClickListener() {
+    public void initialiseView() {
+        CardViewData = rootView.findViewById(R.id.CardViewData);
+        llPasteLink = rootView.findViewById(R.id.llPasteLink);
+        llDownloadButton = rootView.findViewById(R.id.llDownloadButton);
+        donut_progress = rootView.findViewById(R.id.donut_progress);
+
+        etPasteLink = rootView.findViewById(R.id.etPasteLink);
+
+        ivproductImage = rootView.findViewById(R.id.main_image);
+        ivProfilePic = rootView.findViewById(R.id.ivProfilePic);
+        tvUsername = rootView.findViewById(R.id.tvUsername);
+        tvCaption = rootView.findViewById(R.id.comment);
+        preferences=getActivity().getSharedPreferences(getActivity().getPackageName(),Context.MODE_PRIVATE);
+
+
+        llPasteLink.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view) {
-                etURL.setText("");
-            }
-        });
-
-
-        btnCheckURL.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-
-                //todo check using reg exp whether the url is correct
-                new ValidateFileFromURL().execute(etURL.getText().toString());
-
-            }
-        });
-
-        btnPaste.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-
+            public void onClick(View v) {
+                ClipboardManager clipBoard = (ClipboardManager) getActivity().getSystemService(CLIPBOARD_SERVICE);
                 ClipData clipData = clipBoard.getPrimaryClip();
                 ClipData.Item item = clipData.getItemAt(0);
                 String clipURL = item.getText().toString();
-                etURL.setText(clipURL + "");
+                etPasteLink.setText(clipURL);
+
             }
         });
 
-        fabDownload.setOnClickListener(new View.OnClickListener() {
+
+        llDownloadButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view) {
+            public void onClick(View v) {
 
-                String link = etURL.getText().toString();
-                if (!dbcon.isURLPresent(link)) {
-
-                    if (checkURL(link)) {
-
-                        cvdownloadView.setVisibility(View.VISIBLE);
-                        FileDownloaderService.startAction(mContext, etURL.getText().toString(), new imageDownloadReceiver(new Handler()));
-                        //Toast.makeText(mContext, "Post Already Downloaded", Toast.LENGTH_SHORT).show();
-                        ((MainActivity) activity).viewPager.setCurrentItem(1, true);
-                    } else {
-                        Toast.makeText(mContext, "Wrong URL", Toast.LENGTH_SHORT).show();
-                    }
-                } else {
-                    Toast.makeText(mContext, "Post Already Downloaded", Toast.LENGTH_SHORT).show();
-                    ((MainActivity) activity).viewPager.setCurrentItem(1, true);
-                }
-                new DownloadFileFromURL().execute(etURL.getText().toString());
-            }
-        });
-
-        tvCopy.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                clipBoard.setPrimaryClip(ClipData.newPlainText("Caption", tvCaption.getText().toString()));
-            }
-        });
-
-
-        final ClipboardManager clipboard = (ClipboardManager) mContext.getSystemService(Context.CLIPBOARD_SERVICE);
-        clipboard.addPrimaryClipChangedListener(new ClipboardManager.OnPrimaryClipChangedListener() {
-                                                    public void onPrimaryClipChanged() {
-                                                        String a = clipboard.getText().toString();
-                                                        Toast.makeText(mContext, "Copy:\n" + a, Toast.LENGTH_LONG).show();
-
-                                                        //if(mPreviousText.equals(a)) {
-                                                        //	return;
-                                                        //}else {
-
-                                                        //File direct = new File(Environment.getExternalStorageDirectory() + "/InstantInsta.mp4");
-
-                                                        if (!dbcon.isURLPresent(a)) {
-
-                                                            if (checkURL(a)) {
-                                                                Handler handler = new Handler();
-                                                                imageDownloadReceiver imageDownloadReceiver = new imageDownloadReceiver(handler);
-                                                                FileDownloaderService.startAction(mContext, a, imageDownloadReceiver);
-                                                                //mService.downloadAsynFile(a);
-                                                                //mPreviousText = a;
-                                                            }
-                                                        } else {
-                                                            Toast.makeText(mContext, "Post Already Downloaded", Toast.LENGTH_SHORT).show();
-                                                            ((MainActivity) activity).viewPager.setCurrentItem(1, true);
-                                                        }
-                                                        //}
-                                                    }
-                                                }
-        );
-
-        return rootView;
-    }
-
-
-    @SuppressLint("RestrictedApi")
-    public class imageDownloadReceiver extends ResultReceiver {
-
-        public imageDownloadReceiver(Handler handler) {
-            super(handler);
-        }
-
-        @Override
-        protected void onReceiveResult(int resultCode, Bundle resultData) {
-            super.onReceiveResult(resultCode, resultData);
-            switch (resultCode) {
-                case FileDownloaderService.RESPONSE_CODE_DOWNLOAD_RESULT:
-                    String outFilePath = resultData
-                            .getString(FileDownloaderService.ARGUMENT_TARGET_FILE);
-                    String caption = resultData.getString(FileDownloaderService.RESPONSE_CAPTION);
-                    if (outFilePath != null) {
-                        // outFilePath contains path of downloaded file. Do whatever you want to do with it.
-
-                        mProgressBar.setVisibility(View.GONE);
-
-
-                        int i = outFilePath.lastIndexOf('.');
-                        String extension = outFilePath.substring(i + 1);
-
-                        if (extension.equalsIgnoreCase("mp4")) {
-                            Glide.with(mContext)
-                                    .load(outFilePath)
-                                    .placeholder(R.drawable.ic_security)
-                                    .into(ivImage);
-                            ivPlayBtn.setVisibility(View.VISIBLE);
-                        } else {
-
-                            ivPlayBtn.setVisibility(View.GONE);
-                            File file = new File(outFilePath);
-                            Uri imageUri = Uri.fromFile(file);
-
-                            Glide.with(mContext.getApplicationContext())
-                                    .load(imageUri)
-                                    .into(ivImage);
-
+                Dexter.withActivity(getActivity()).withPermissions(Manifest.permission.READ_EXTERNAL_STORAGE,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE).withListener(new MultiplePermissionsListener() {
+                    @Override
+                    public void onPermissionsChecked(MultiplePermissionsReport report) {
+                        // check if all permissions are granted
+                        if (report.areAllPermissionsGranted()) {
+                            checkUrl();
                         }
 
-                        tvCaption.setText(Html.fromHtml(caption + ""));
 
-                        tvProgress.setVisibility(View.GONE);
-                        tvCancel.setVisibility(View.GONE);
-                        ((OnPostDownload) activity).refreshList();
-                        System.out.println("Downloaded " + outFilePath);
+                        // check for permanent denial of any permission
+                        if (report.isAnyPermissionPermanentlyDenied()) {
+                            // show alert dialog navigating to Settings
+                            showSettingsDialog();
 
-                        //removing 100% and cancel
-
-                    } else {
-                        System.out.println("Failed");
-                    }
-                    break;
-
-                case FileDownloaderService.RESPONSE_CODE_DOWNLOAD_PROGRESS:
-
-                    progress = 0;
-                    progress = resultData.getInt(RESPONSE_DOWNLOAD_PROGRESS);
-
-                    //String extension=resultData.getString(RESPONSE_TYPE);
-                    //if (extension.equalsIgnoreCase("mp4")){
-                    //	ivPlayBtn.setVisibility(View.VISIBLE);
-                    //}else {
-                    //	ivPlayBtn.setVisibility(View.GONE);
-                    //}
-
-                    System.out.println("Progress:" + progress);
-
-
-                    //circularProgress.setVisibility(View.VISIBLE);
-                    //circularProgress.setText( progress+ "%");
-                    //circularProgress.setDonut_progress(progress+"");
-
-                    llDownloadLayout.setVisibility(View.VISIBLE);
-                    tvProgress.setVisibility(View.VISIBLE);
-                    tvCancel.setVisibility(View.VISIBLE);
-                    tvProgress.setText(progress + "%");
-
-                    //progressbar not working
-                    mProgressBar.setMax(100);
-                    mProgressBar.setProgress(progress);
-                    mProgressBar.setProgress(0);
-                    //mProgressBar.post(new Runnable() {
-                    //	@Override public void run() {
-                    //		mProgressBar.setProgress(progress);
-                    //	}
-                    //});
-                    //ivImage.setImageBitmap();
-
-                    break;
-                default:
-                    break;
-            }
-        }
-    }
-
-
-    /**
-     * receiver for downloading insta share url
-     */
-
-    // Flag if receiver is registered
-    private boolean mReceiversRegistered = false;
-    // Defiine a handler and a broadcast receiver
-    private final Handler mHandler = new Handler();
-
-
-    private final BroadcastReceiver mIntentReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (intent.getAction().equals(DownloadService.CUSTOM_INTENT)) {
-
-                if (intent.getFlags() < 100) {
-                    circularProgress.setVisibility(View.VISIBLE);
-                    circularProgress.setText(intent.getFlags() + "%");
-                    circularProgress.setDonut_progress(intent.getFlags() + "");
-                    circularProgress.setMax(100);
-                } else {
-                    circularProgress.setVisibility(View.GONE);
-                    //mService.stopSelf();
-                    ((OnPostDownload) activity).refreshList();
-                    String filePath = intent.getStringExtra("URL");
-
-                    if (filePath != null) {
-
-                        String extension = "";
-
-                        // recognizing weather its a image or video from file format
-                        int i = filePath.lastIndexOf('.');
-                        extension = filePath.substring(i + 1);
-
-                        if (extension.equalsIgnoreCase("mp4")) {
-                            Bitmap thumbnail = ThumbnailUtils.createVideoThumbnail(filePath, MediaStore.Images.Thumbnails.MINI_KIND);
-                            ivImage.setImageBitmap(thumbnail);
-                            //ivPlayBtn.setVisibility(View.VISIBLE);
-                        } else {
-                            ivImage.setImageDrawable(Drawable.createFromPath(filePath));
                         }
                     }
-                }
-            }
-        }
-    };
 
-    /**
-     * Defines callbacks for service binding, passed to bindService()
-     */
-    private ServiceConnection mConnection = new ServiceConnection() {
+                    public void onPermissionRationaleShouldBeShown(List<com.karumi.dexter.listener.PermissionRequest> permissions, PermissionToken token) {
+                        token.continuePermissionRequest();
+                    }
 
-        @Override
-        public void onServiceConnected(ComponentName className,
-                                       IBinder service) {
-            // We've bound to LocalService, cast the IBinder and get LocalService instance
-            DownloadService.LocalBinder binder = (DownloadService.LocalBinder) service;
-            mService = binder.getService();
-            mBound = true;
-        }
+                }).withErrorListener(new PermissionRequestErrorListener() {
+                    @Override
+                    public void onError(DexterError error) {
+                        Toast.makeText(getActivity(), "Error occurred! ", Toast.LENGTH_SHORT).show();
+                    }
+                }).check();
 
-        @Override
-        public void onServiceDisconnected(ComponentName arg0) {
-            mBound = false;
-        }
-    };
-
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        // Register Sync Recievers
-        etURL.post(new Runnable() {
-            @Override
-            public void run() {
-                etURL.requestFocus();
-                InputMethodManager imgr = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
-                imgr.showSoftInput(etURL, InputMethodManager.SHOW_IMPLICIT);
             }
         });
-        IntentFilter intentToReceiveFilter = new IntentFilter();
-        intentToReceiveFilter.addAction(DownloadService.CUSTOM_INTENT);
-        mContext.registerReceiver(mIntentReceiver, intentToReceiveFilter, null, mHandler);
-        mReceiversRegistered = true;
     }
 
-    @Override
-    public void onPause() {
-        super.onPause();
 
-        // Make sure you unregister your receivers when you pause your activity
-        if (mReceiversRegistered) {
-            mContext.unregisterReceiver(mIntentReceiver);
-            mReceiversRegistered = false;
+    public void checkUrl() {
+        url = etPasteLink.getText().toString();
+        System.out.println(url);
+        if (url.equals("")) {
+
+        } else if (url.startsWith("https://www.instagram.com/p")) {
+
+            if (url.substring(url.indexOf("p/") + 2, url.indexOf("/?")).length() == 11) {
+                //Link is public
+
+                Toast.makeText(getActivity(), "This is public link", Toast.LENGTH_LONG).show();
+                newurl = url.substring(0, 39);
+                newurl = newurl + "/?__a=1";
+                Log.d("myurl", newurl);
+                mRequestForGetData(newurl);
+            } else {
+                System.out.println(preferences.getBoolean("private_session",false));
+                Toast.makeText(getActivity(), "This is Private link", Toast.LENGTH_LONG).show();
+                System.out.println("Your link in private please login to instagram");
+                etPasteLink.setText(null);
+
+                if (preferences.getBoolean("private_session",false)){
+                    newurl = url.substring(0, 67);
+                    newurl = newurl + "/?__a=1";
+                    mRequestForPrivatGetData(newurl);
+                }else{ displayAlertBox();}
+
+            }
+        } else {
+            Toast.makeText(getActivity(), "This is Invalid Instagram Link", Toast.LENGTH_LONG).show();
         }
     }
-
-    @Override
-    public void onStop() {
-        super.onStop();
-        super.onStop();
-        // Unbind from the service
-        if (mBound) {
-            mContext.unbindService(mConnection);
-            mBound = false;
-        }
-
-        if (mReceiversRegistered) {
-            mContext.unregisterReceiver(mIntentReceiver);
-            mReceiversRegistered = false;
-        }
-    }
-
-    /**
-     * Background Async Task to check validate file and get URL
-     */
-    class ValidateFileFromURL extends AsyncTask<String, String, Bitmap> {
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            showDialog(mContext);
-            cvdownloadView.setVisibility(View.VISIBLE);
-        }
-
-        @Override
-        protected Bitmap doInBackground(String... f_url) {
-            try {
-
-                Document doc = Jsoup.connect(f_url[0]).get();
-                String html = doc.toString();
-
-                type = false;
-
-                //for caption
-                int indexcaption = html.indexOf("edge_media_to_caption");
-                indexcaption += 48;
-
-                int startCaption = html.indexOf("\"", indexcaption);
-                startCaption += 1;
-                int endCaption = html.indexOf("\"", startCaption);
-
-                String strCaption = null;
-                strCaption = html.substring(startCaption, endCaption);
-
-                //setting caption flag=0 for caption flag=1 for vid flag=2 for image
-                publishProgress("0", strCaption);
-
-                //for video
-                int indexVid = html.indexOf("\"video_url\"");
-                indexVid += 11;
-                int startVid = html.indexOf("\"", indexVid);
-                startVid += 1;
-                int endVid = html.indexOf("\"", startVid);
-
-                String urlVid = null;
-                urlVid = html.substring(startVid, endVid);
-
-                if (urlVid.equalsIgnoreCase("en")) {
-                    // it is a vid show play btn
-                    type = true;
-                }
-
-                //for image url
-                int index = html.indexOf("display_url");
-                index += 13;
-                int start = html.indexOf("\"", index);
-                start += 1;
-                int end = html.indexOf("\"", start);
-                //                System.out.println("start:"+start+ "end:"+ end);
-                String urlImage = html.substring(start, end);
+    public void mRequestForGetData(String newurl1) {
 
 
-                Bitmap mIcon11 = null;
+        mprogressDialog = ProgressDialog.show(getActivity(), null, "Loading...");
+        mprogressDialog.setCanceledOnTouchOutside(false);
+        mprogressDialog.setCancelable(true);
+
+        RequestQueue mRequestQueue = Volley.newRequestQueue(mContext);
+        StringRequest mStringRequest = new StringRequest(Request.Method.GET, newurl1, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
                 try {
-                    InputStream in = new java.net.URL(urlImage).openStream();
-                    mIcon11 = BitmapFactory.decodeStream(in);
+
+                    Gson gson = new Gson();
+                    ResponseModel responseModel = gson.fromJson(response, ResponseModel.class);
+                    String aa = responseModel.getGraphql().getShortcode_media().get__typename();
+                    Log.d("typename", aa);
+                    getDataonCardView(responseModel);
+                    mprogressDialog.dismiss();
+                    etPasteLink.setText(null);
+                    new DownloadFileFromURL().execute(responseModel);
+
                 } catch (Exception e) {
-                    Log.e("Error", e.getMessage());
                     e.printStackTrace();
                 }
-                return mIcon11;
-
-            } catch (Exception e) {
-                Log.e("Error: ", e.getMessage());
             }
-
-            return null;
-        }
-
-        protected void onProgressUpdate(String... progress) {
-
-            if (progress[0] == "0") {
-                tvCaption.setText(Html.fromHtml(progress[1] + ""));
-                dismissDialog();
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.d("Error Message", error.toString());
+                mprogressDialog.dismiss();
+                etPasteLink.setText(null);
             }
-        }
+        });
+        mRequestQueue.add(mStringRequest);
 
-        @Override
-        protected void onPostExecute(Bitmap image) {
-            dismissDialog();
-            ivImage.setImageBitmap(image);
-            if (type) {
-                ivPlayBtn.setVisibility(View.VISIBLE);
+
+    }
+
+    public void mRequestForPrivatGetData(String newurl1) {
+
+
+        mprogressDialog = ProgressDialog.show(getActivity(), null, "Loading...");
+        mprogressDialog.setCanceledOnTouchOutside(false);
+        mprogressDialog.setCancelable(true);
+
+        RequestQueue mRequestQueue = Volley.newRequestQueue(mContext);
+        StringRequest mStringRequest = new StringRequest(Request.Method.GET, newurl1, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                try {
+
+                    Gson gson = new Gson();
+                    ResponseModel responseModel = gson.fromJson(response, ResponseModel.class);
+                    String aa = responseModel.getGraphql().getShortcode_media().get__typename();
+                    Log.d("typename", aa);
+                    getDataonCardView(responseModel);
+                    mprogressDialog.dismiss();
+                    etPasteLink.setText(null);
+                    new DownloadFileFromURL().execute(responseModel);
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
-        }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.d("Error Message", error.toString());
+                mprogressDialog.dismiss();
+                etPasteLink.setText(null);
+            }
+        }){
+            @Override
+            public Map<String, String> getHeaders() {
+                Map<String, String>  params = new HashMap<String, String>();
+                System.out.println("Session id========"+  preferences.getString("sessionid",""));
+                params.put("Cookie",preferences.getString("sessionid",""));
+                return params;
+            }
+        };
+        mRequestQueue.add(mStringRequest);
+
+
+    }
+
+    //Logic for show data on card view
+    public void getDataonCardView(final ResponseModel data) {
+
+        CardViewData.setVisibility(View.VISIBLE);
+        tvUsername.setText(data.getGraphql().getShortcode_media().getOwner().getUsername());
+
+
+        tvCaption.setText(data.getGraphql().getShortcode_media().getEdge_media_to_caption().getEdges().get(0).getNode().getText());
+
+        imgPath = data.getGraphql().getShortcode_media().getDisplay_url();
+        System.out.println(imgPath);
+        Picasso.get().load(imgPath).into(ivproductImage);
+        videoPath = data.getGraphql().getShortcode_media().getVideo_url();
+
+        System.out.println(videoPath);
+
+
+        contentType = data.getGraphql().getShortcode_media().get__typename();
+        System.out.println(contentType);
+
+
+        profilePath = data.getGraphql().getShortcode_media().getOwner().getProfile_pic_url();
+        System.out.println(profilePath);
+        Picasso.get().load(profilePath).into(ivProfilePic);
+        CardViewData.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                /*
+                    if (contentType.equals("GraphImage")) {
+                        Intent intent = new Intent(getActivity(), ImageShowActivity.class);
+                        intent.putExtra("image_url", imgPath);
+                        intent.putExtra("Content_Type", contentType);
+                        getActivity().startActivity(intent);
+                    } else if (contentType.equals("GraphSidecar")) {
+
+
+                        Intent intent1 = new Intent(mContext, ImageShowSliderActivity.class);
+                        intent1.putExtra("image_slider_list", data);
+
+                        mContext.startActivity(intent1);
+
+                    } else if (contentType.equals("GraphVideo")) {
+                        Intent intent = new Intent(getActivity(), ImageShowActivity.class);
+                        intent.putExtra("image_url", imgPath);
+                        intent.putExtra("viedo_url", videoPath);
+                        intent.putExtra("Content_Type", contentType);
+
+                        getActivity().startActivity(intent);
+                    }
+                */
+            }
+        });
+
 
     }
 
 
-    /**
-     * Background Async Task to download file
-     */
-    class DownloadFileFromURL extends AsyncTask<String, String, String> {
+    //Asynk task for downloading image or video
+
+    class DownloadFileFromURL extends AsyncTask<ResponseModel, String, String> {
 
         /**
          * Before starting background thread
@@ -570,10 +378,10 @@ public class InstaFragment extends Fragment {
             super.onPreExecute();
 
 
-            circularProgress.setVisibility(View.VISIBLE);
-            circularProgress.setText("0%");
-            circularProgress.setDonut_progress("0");
-            circularProgress.setMax(100);
+            donut_progress.setVisibility(View.VISIBLE);
+            donut_progress.setText("0%");
+            donut_progress.setDonut_progress("0");
+            donut_progress.setMax(100);
 
         }
 
@@ -581,148 +389,208 @@ public class InstaFragment extends Fragment {
          * Downloading file in background thread
          */
         @Override
-        protected String doInBackground(String... f_url) {
+        protected String doInBackground(ResponseModel... data) {
+
+            //File destinationFile = new File(Environment.getDownloadCacheDirectory() + "/InstaGram Downloader");
+            File destinationFile = new File("/storage/emulated/0/Twinsta");
+            System.out.println(destinationFile.toString());
+            if (!destinationFile.exists()) {
+                destinationFile.mkdirs();
+            }
             int count;
-            type = false;
-            try {
-                String strCaption = null;
+            ResponseModel data1 = data[0];
 
-                Document doc = Jsoup.connect(f_url[0]).get();
-                URL url = null;
-                String html = doc.toString();
-                String urlVid = null;
+            String contentType = data1.getGraphql().getShortcode_media().get__typename();
 
-                //for video
-                int indexVid = html.indexOf("\"video_url\"");
-                indexVid += 11;
-                int startVid = html.indexOf("\"", indexVid);
-                startVid += 1;
-                int endVid = html.indexOf("\"", startVid);
+            String imagePath = data1.getGraphql().getShortcode_media().getDisplay_url();
 
-                urlVid = html.substring(startVid, endVid);
+            String videoPath = data1.getGraphql().getShortcode_media().getVideo_url();
+//Image Download Logic
+            if (contentType.equals("GraphImage")) {
 
-                if (urlVid.equalsIgnoreCase("en")) {
-                    //
-                    //	url = new URL(urlVid);
-                    //	type =false;
-                    //}else {
-                    // for image url
+                try {
+                    URL url = new URL(imagePath);
+                    URLConnection conection = url.openConnection();
+                    conection.connect();
+                    // getting file length
+                    int lenghtOfFile = conection.getContentLength();
 
-                    int index = html.indexOf("display_url");
-                    index += 13;
-                    int start = html.indexOf("\"", index);
-                    start += 1;
-                    int end = html.indexOf("\"", start);
-                    //                System.out.println("start:"+start+ "end:"+ end);
-                    String urlImage = html.substring(start, end);
-                    type = false;
-                    url = new URL(urlImage);
+                    // input stream to read file - with 8k buffer
+                    InputStream input = new BufferedInputStream(url.openStream(), 8192);
+                    Format formatter = new SimpleDateFormat("YYYY-MM-dd_hh-mm-ss");
+                    // Output stream to write file
 
-                } else {
 
-                    url = new URL(urlVid);
-                    type = true;
+                    OutputStream output = new FileOutputStream(destinationFile + File.separator + "Image_" + formatter.format(new Date()) + ".jpg");
+
+                    byte data2[] = new byte[1024];
+
+                    long total = 0;
+
+                    while ((count = input.read(data2)) != -1) {
+                        total += count;
+                        // publishing the progress....
+                        // After this onProgressUpdate will be called
+                        publishProgress("" + (int) ((total * 100) / lenghtOfFile));
+
+                        // writing data to file
+                        output.write(data2, 0, count);
+                    }
+
+                    // flushing output
+                    output.flush();
+
+                    // closing streams
+                    output.close();
+                    input.close();
+                } catch (Exception e) {
+                    Log.e("Error: ", e.getMessage());
                 }
+            } else if (contentType.equals("GraphVideo")) {
+                try {
+                    URL url = new URL(videoPath);
+                    URLConnection conection = url.openConnection();
+                    conection.connect();
+                    // getting file length
+                    int lenghtOfFile = conection.getContentLength();
 
-                // true is for video and false is image
-
-
-                //for caption
-                int indexcaption = html.indexOf("edge_media_to_caption");
-                indexcaption += 53;
-
-                int startCaption = html.indexOf("\"", indexcaption);
-                startCaption += 1;
-                int endCaption = html.indexOf("\"", startCaption);
-
-                strCaption = html.substring(startCaption, endCaption);
-
-
-                URLConnection conection = url.openConnection();
-                conection.connect();
-                // getting file length
-                int lenghtOfFile = conection.getContentLength();
-
-                // input stream to read file - with 8k buffer
-                InputStream input = new BufferedInputStream(url.openStream(), 8192);
-
-                //generate a unique name
-
-                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-mm-dd-hh-mm-ss");
-                //File myFile = null;
+                    // input stream to read file - with 8k buffer
+                    InputStream input = new BufferedInputStream(url.openStream(), 8192);
+                    Format formatter = new SimpleDateFormat("YYYY-MM-dd_hh-mm-ss");
+                    // Output stream to write file
 
 
-                // Output stream to write file
+                    OutputStream output = new FileOutputStream(destinationFile + File.separator + "video_" + formatter.format(new Date()) + ".mp4");
 
-                File direct = new File(Environment.getExternalStorageDirectory() + "/InstantInsta");
+                    byte data3[] = new byte[1024];
 
-                if (!direct.exists()) {
-                    direct = new File(Environment.getExternalStorageDirectory() + "/InstantInsta");
-                    direct.mkdirs();
+                    long total = 0;
+
+                    while ((count = input.read(data3)) != -1) {
+                        total += count;
+                        // publishing the progress....
+                        // After this onProgressUpdate will be called
+                        publishProgress("" + (int) ((total * 100) / lenghtOfFile));
+
+                        // writing data to file
+                        output.write(data3, 0, count);
+                    }
+
+                    // flushing output
+                    output.flush();
+
+                    // closing streams
+                    output.close();
+                    input.close();
+                } catch (Exception e) {
+                    Log.e("Error: ", e.getMessage());
                 }
+            } else if (contentType.equals("GraphSidecar")) {
 
-                String fileName = null;
-                if (!type) {
-                    fileName = "Insta-"
-                            + simpleDateFormat.format(new Date())
-                            + ".jpg";
-                } else {
 
-                    fileName = "Insta-"
-                            + simpleDateFormat.format(new Date())
-                            + ".mp4";
+                int length = data1.getGraphql().getShortcode_media().getEdge_sidecar_to_children().getEdges().size();
+                System.out.println("Length is =============" + length);
+
+                for (int i = 0; i < length - 1; i++) {
+
+                    String content_type = data1.getGraphql().getShortcode_media().getEdge_sidecar_to_children().getEdges().get(i).getNode().get__typename();
+                    String image_path = data1.getGraphql().getShortcode_media().getEdge_sidecar_to_children().getEdges().get(i).getNode().getDisplay_url();
+                    String video_path = data1.getGraphql().getShortcode_media().getEdge_sidecar_to_children().getEdges().get(i).getNode().getVideo_url();
+                    if (content_type.equals("GraphImage")) {
+                        try {
+                            URL url = new URL(image_path);
+                            URLConnection conection = url.openConnection();
+                            conection.connect();
+                            // getting file length
+                            int lenghtOfFile = conection.getContentLength();
+
+                            // input stream to read file - with 8k buffer
+                            InputStream input = new BufferedInputStream(url.openStream(), 8192);
+                            Format formatter = new SimpleDateFormat("YYYY-MM-dd_hh-mm-ss");
+                            // Output stream to write file
+
+
+                            OutputStream output = new FileOutputStream(destinationFile + File.separator + "Image_" + formatter.format(new Date()) + ".jpg");
+
+                            byte data3[] = new byte[1024];
+
+                            long total = 0;
+
+                            while ((count = input.read(data3)) != -1) {
+                                total += count;
+                                // publishing the progress....
+                                // After this onProgressUpdate will be called
+                                publishProgress("" + (int) ((total * 100) / lenghtOfFile));
+
+                                // writing data to file
+                                output.write(data3, 0, count);
+                            }
+
+                            // flushing output
+                            output.flush();
+
+                            // closing streams
+                            output.close();
+                            input.close();
+
+                        } catch (Exception e) {
+                            Log.e("Error: ", e.getMessage());
+                        }
+                    } else if (content_type.equals("GraphVideo")) {
+                        try {
+                            URL url = new URL(video_path);
+                            URLConnection conection = url.openConnection();
+                            conection.connect();
+                            // getting file length
+                            int lenghtOfFile = conection.getContentLength();
+
+                            // input stream to read file - with 8k buffer
+                            InputStream input = new BufferedInputStream(url.openStream(), 8192);
+                            Format formatter = new SimpleDateFormat("YYYY-MM-dd_hh-mm-ss");
+                            // Output stream to write file
+
+
+                            OutputStream output = new FileOutputStream(destinationFile + File.separator + "Video_" + formatter.format(new Date()) + ".mp4");
+
+                            byte data3[] = new byte[1024];
+
+                            long total = 0;
+
+                            while ((count = input.read(data3)) != -1) {
+                                total += count;
+                                // publishing the progress....
+                                // After this onProgressUpdate will be called
+                                publishProgress("" + (int) ((total * 100) / lenghtOfFile));
+
+                                // writing data to file
+                                output.write(data3, 0, count);
+                            }
+                            // flushing output
+                            output.flush();
+
+                            // closing streams
+                            output.close();
+                            input.close();
+
+                        } catch (Exception e) {
+                            Log.e("Error: ", e.getMessage());
+                        }
+                    }
                 }
-
-                File file = new File(direct, fileName);
-                if (file.exists()) {
-                    file.delete();
-                }
-
-                OutputStream output = new FileOutputStream(file);
-
-                byte data[] = new byte[1024];
-
-                long total = 0;
-
-                while ((count = input.read(data)) != -1) {
-                    total += count;
-                    // publishing the progress....
-                    // After this onProgressUpdate will be called
-                    publishProgress("" + ((total * 100) / lenghtOfFile));
-
-                    // writing data to file
-                    output.write(data, 0, count);
-                }
-
-                // flushing output
-                output.flush();
-
-                // closing streams
-                output.close();
-                input.close();
-
-                // add image into the database
-
-                int imageID = dbcon.getTotalImages() + 1;
-
-                InstaImage instaImage = new InstaImage(imageID, fileName, f_url[0], file.getAbsolutePath(), strCaption);
-                dbcon.addimage(instaImage);
-
-                return file.getAbsolutePath();
-            } catch (Exception e) {
-                Log.e("Error", e.getMessage());
             }
 
             return null;
         }
+
 
         /**
          * Updating progress bar
          */
         protected void onProgressUpdate(String... progress) {
             // setting progress percentage
-            circularProgress.setText(progress[0] + "%");
-            circularProgress.setDonut_progress(progress[0]);
+            donut_progress.setText(progress[0] + "%");
+            donut_progress.setDonut_progress(progress[0]);
+
         }
 
         /**
@@ -732,73 +600,76 @@ public class InstaFragment extends Fragment {
         @Override
         protected void onPostExecute(String file_url) {
 
-            circularProgress.setVisibility(View.GONE);
-            Toast.makeText(mContext, "Post Saved", Toast.LENGTH_LONG).show();
+            donut_progress.setVisibility(View.GONE);
+            Toast.makeText(getContext(), "Post Saved", Toast.LENGTH_LONG).show();
+        }
+    }
 
-            String extension = "";
 
-            // recognizing weather its a image or video from file format
-            int i = file_url.lastIndexOf('.');
-            extension = file_url.substring(i + 1);
-
-            if (extension.equalsIgnoreCase("mp4")) {
-                Bitmap thumbnail = ThumbnailUtils.createVideoThumbnail(file_url, MediaStore.Images.Thumbnails.MINI_KIND);
-                ivImage.setImageBitmap(thumbnail);
-                //ivPlayBtn.setVisibility(View.VISIBLE);
-            } else {
-                ivImage.setImageDrawable(Drawable.createFromPath(file_url));
+    private void showSettingsDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        builder.setTitle("Need Permissions");
+        builder.setMessage("This app needs permission to use this feature. You can grant them in app settings.");
+        builder.setPositiveButton("GOTO SETTINGS", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+                openSettings();
             }
-            ((OnPostDownload) activity).refreshList();
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+        builder.show();
+
+    }
+
+    // navigating user to app settings
+    private void openSettings() {
+        Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+        Uri uri = Uri.fromParts("package", getActivity().getPackageName(), null);
+        intent.setData(uri);
+        startActivityForResult(intent, 101);
+    }
+
+
+    public void displayAlertBox() {
+        alertdialog = new AlertDialog.Builder(getActivity());
+        alertdialog.setMessage("This app require you to login in your instagram account in order to download video and your data will be safe.")
+                .setCancelable(false).setPositiveButton("Login", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+                Toast.makeText(getActivity(), "you choose yes action for alertbox",
+                        Toast.LENGTH_SHORT).show();
+                Intent i = new Intent(getActivity(), InstaWebviewActivity.class);
+                startActivityForResult(i, 1);
+            }
+        }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+        AlertDialog alert = alertdialog.create();
+        //Setting the title manually
+        alert.setTitle("Private Link Detected");
+        alert.show();
+
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 1 && resultCode == 1) {
+            newurl = url.substring(0, 67);
+            newurl=newurl + "/?__a=1";
+            System.out.println(newurl);
+
+            mRequestForPrivatGetData(newurl);
         }
     }
-
-    public static void showDialog(Context context) {
-        mProgressDialog = new ProgressDialog(context);
-        mProgressDialog.setIndeterminate(true);
-        mProgressDialog.setMessage("Please wait...");
-        mProgressDialog.show();
-    }
-
-    public static void dismissDialog() {
-        if (mProgressDialog.isShowing() && mProgressDialog != null)
-            mProgressDialog.dismiss();
-    }
-
-    @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
-        Log.i("Tag", "DownloadFragment:onStart");
-    }
-
-    public interface OnPostDownload {
-        void refreshList();
-    }
-
-    @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-        this.activity = activity;
-    }
-
-    boolean checkURL(String url) {
-
-        Pattern r = Pattern.compile(pattern);
-
-        // Now create matcher object.
-        Matcher m = r.matcher(url);
-        if (m.find()) {
-            System.out.println("Found value: " + m.group(0));
-            return true;
-        } else {
-            System.out.println("NO MATCH");
-            return false;
-        }
-    }
-
 }

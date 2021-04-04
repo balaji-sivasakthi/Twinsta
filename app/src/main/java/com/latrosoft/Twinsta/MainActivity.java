@@ -9,51 +9,40 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.CheckBox;
-import android.widget.CompoundButton;
-import android.widget.RadioGroup;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.view.menu.MenuBuilder;
 import androidx.core.app.ActivityCompat;
 import androidx.viewpager.widget.PagerAdapter;
 import androidx.viewpager.widget.ViewPager;
 
-import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
-import com.google.android.gms.ads.InterstitialAd;
 import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.initialization.InitializationStatus;
 import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
+import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.tabs.TabLayout;
 import com.google.android.play.core.review.ReviewInfo;
 import com.google.android.play.core.review.ReviewManager;
 import com.google.android.play.core.review.ReviewManagerFactory;
 import com.google.android.play.core.tasks.Task;
 import com.latrosoft.Twinsta.Adapter.PageAdapter;
 import com.latrosoft.Twinsta.Utils.Common;
-import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.tabs.TabLayout;
-
 
 import java.io.File;
 import java.util.Objects;
 
-import com.latrosoft.Twinsta.R;
-
-import org.w3c.dom.Comment;
-
 public class MainActivity extends AppCompatActivity{
+
     private AdView mAdView;
-    private ViewPager viewPager;
+    public ViewPager viewPager;
     private long back_pressed;
     private CheckBox mCheckBox;
     private static final int REQUEST_PERMISSIONS = 1234;
@@ -66,19 +55,7 @@ public class MainActivity extends AppCompatActivity{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mCheckBox=(CheckBox)findViewById(R.id.checkB);
-       mCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-           @Override
-           public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-               if (isChecked){
-                   Common.setmString("WhatsApp Business/Media/.Statuses");
-                   Toast.makeText(MainActivity.this,"MmString Value: "+Common.getmString(),Toast.LENGTH_SHORT);
-               }else{
-                   Common.setmString("WhatsApp/Media/.Statuses");
-                   Toast.makeText(MainActivity.this,"MmString Value: "+Common.getmString(),Toast.LENGTH_SHORT);
-               }
-           }
-       });
+
 
 
         ReviewManager manager = ReviewManagerFactory.create(this);
@@ -127,11 +104,11 @@ public class MainActivity extends AppCompatActivity{
         TabLayout tabLayout = findViewById(R.id.tabLayout);
         viewPager = findViewById(R.id.viewPager);
         setSupportActionBar(toolbar);
-
+        tabLayout.addTab(tabLayout.newTab().setText("Insta"));
         tabLayout.addTab(tabLayout.newTab().setText(getString(R.string.images)));
         tabLayout.addTab(tabLayout.newTab().setText(getString(R.string.videos)));
         tabLayout.addTab(tabLayout.newTab().setText(getString(R.string.saved_files)));
-        tabLayout.addTab(tabLayout.newTab().setText("Insta"));
+
 
         PagerAdapter adapter = new PageAdapter(getSupportFragmentManager(), tabLayout.getTabCount());
         viewPager.setAdapter(adapter);
@@ -247,7 +224,7 @@ public class MainActivity extends AppCompatActivity{
         }
 
         Common.APP_DIR = Environment.getExternalStorageDirectory().getPath() +
-                File.separator + "Twintsa";
+                File.separator + "Twinsta";
 
     }
 

@@ -14,8 +14,9 @@ import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.FileProvider;
 
-import com.latrosoft.Twinsta.Models.Status;
 import com.google.android.material.snackbar.Snackbar;
+import com.latrosoft.Twinsta.Models.Status;
+import com.latrosoft.Twinsta.R;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,13 +25,10 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.Random;
 
-import com.latrosoft.Twinsta.R;
-import com.latrosoft.Twinsta.SettingsActivity;
-
 import static android.content.Context.NOTIFICATION_SERVICE;
 
 public class Common {
-    private static String mString="WhatsApp Business/Media/.Statuses";
+    private static String mString="WhatsApp/Media/.Statuses";
     static final int MINI_KIND = 1;
     static final int MICRO_KIND = 3;
 
