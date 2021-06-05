@@ -9,6 +9,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.CheckBox;
@@ -44,7 +45,6 @@ public class MainActivity extends AppCompatActivity{
     private AdView mAdView;
     public ViewPager viewPager;
     private long back_pressed;
-    private CheckBox mCheckBox;
     private static final int REQUEST_PERMISSIONS = 1234;
     private static final String[] PERMISSIONS = {
             Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -55,7 +55,7 @@ public class MainActivity extends AppCompatActivity{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        Log.d("Tfile", Common.STATUS_DIRECTORY.toString());
 
 
         ReviewManager manager = ReviewManagerFactory.create(this);
@@ -180,7 +180,7 @@ public class MainActivity extends AppCompatActivity{
                 return true;
             case R.id.menu_aboutUs:
                 startActivity(new Intent(getApplicationContext(), AboutUs.class));
-                return true;
+                return true; Toast.makeText(getApplicationContext(),Common.getmString(),Toast.LENGTH_LONG);
              case R.id.menu_checkUpdate:
                 GetLatestAppVersion getLatestAppVersion = new GetLatestAppVersion();
                 getLatestAppVersion.execute();

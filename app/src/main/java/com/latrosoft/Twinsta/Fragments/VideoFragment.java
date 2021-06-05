@@ -8,6 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -19,7 +20,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.latrosoft.Twinsta.Adapter.VideoAdapter;
-import com.latrosoft.Twinsta.MainActivity;
 import com.latrosoft.Twinsta.Models.Status;
 import com.latrosoft.Twinsta.Utils.Common;
 
@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import com.latrosoft.Twinsta.R;
-
 public class VideoFragment extends Fragment {
 
     private RecyclerView recyclerView;
@@ -38,11 +37,11 @@ public class VideoFragment extends Fragment {
     private VideoAdapter videoAdapter;
     private RelativeLayout container;
     private SwipeRefreshLayout swipeRefreshLayout;
+    private TextView messageTextView;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-
         return inflater.inflate(R.layout.fragment_videos, container, false);
     }
 
@@ -53,6 +52,7 @@ public class VideoFragment extends Fragment {
         progressBar = view.findViewById(R.id.prgressBarVideo);
         container = view.findViewById(R.id.videos_container);
         swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout);
+        messageTextView = view.findViewById(R.id.messageTextVideo);
 
         StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
         StrictMode.setVmPolicy(builder.build());
@@ -76,50 +76,71 @@ public class VideoFragment extends Fragment {
 
         if (Common.STATUS_DIRECTORY.exists()) {
 
-            new Thread(() -> {
-                File[] statusFiles = Common.STATUS_DIRECTORY.listFiles();
-                videoList.clear();
+            execute(Common.STATUS_DIRECTORY);
 
-                if (statusFiles != null && statusFiles.length > 0) {
+        } else if (Common.STATUS_DIRECTORY_NEW.exists()) {
 
-                    Arrays.sort(statusFiles);
-                    for (File file : statusFiles) {
-                        Status status = new Status(file, file.getName(), file.getAbsolutePath());
-
-                        if (status.isVideo()) {
-                            videoList.add(status);
-                        }
-
-                    }
-
-                    handler.post(() -> {
-                        videoAdapter = new VideoAdapter(videoList, container);
-                        recyclerView.setAdapter(videoAdapter);
-                        videoAdapter.notifyDataSetChanged();
-                        progressBar.setVisibility(View.GONE);
-                    });
-
-                } else {
-
-                    handler.post(() -> {
-                        progressBar.setVisibility(View.GONE);
-                        Toast.makeText(getActivity(), "Dir doest not exists", Toast.LENGTH_SHORT).show();
-                    });
-
-                }
-                swipeRefreshLayout.setRefreshing(false);
-            }).start();
+            execute(Common.STATUS_DIRECTORY_NEW);
 
         } else {
-            Toast.makeText(getActivity(), "Cant find WhatsApp Dir", Toast.LENGTH_SHORT).show();
+            messageTextView.setVisibility(View.VISIBLE);
+            messageTextView.setText(R.string.cant_find_whatsapp_dir);
+            Toast.makeText(getActivity(), getString(R.string.cant_find_whatsapp_dir), Toast.LENGTH_SHORT).show();
             swipeRefreshLayout.setRefreshing(false);
         }
 
     }
 
+    private void execute(File waFolder) {
+        new Thread(() -> {
+            File[] statusFiles = waFolder.listFiles();
+            videoList.clear();
+
+            if (statusFiles != null && statusFiles.length > 0) {
+
+                Arrays.sort(statusFiles);
+                for (File file : statusFiles) {
+                    Status status = new Status(file, file.getName(), file.getAbsolutePath());
+
+                    if (status.isVideo()) {
+                        videoList.add(status);
+                    }
+
+                }
+
+                handler.post(() -> {
+
+                    if (videoList.size() <= 0) {
+                        messageTextView.setVisibility(View.VISIBLE);
+                        messageTextView.setText(R.string.no_files_found);
+                    } else {
+                        messageTextView.setVisibility(View.GONE);
+                        messageTextView.setText("");
+                    }
+
+                    videoAdapter = new VideoAdapter(videoList, container);
+                    recyclerView.setAdapter(videoAdapter);
+                    videoAdapter.notifyDataSetChanged();
+                    progressBar.setVisibility(View.GONE);
+                });
+
+            } else {
+
+                handler.post(() -> {
+                    progressBar.setVisibility(View.GONE);
+                    messageTextView.setVisibility(View.VISIBLE);
+                    messageTextView.setText(R.string.no_files_found);
+                    Toast.makeText(getActivity(), getString(R.string.no_files_found), Toast.LENGTH_SHORT).show();
+                });
+
+            }
+            swipeRefreshLayout.setRefreshing(false);
+        }).start();
+    }
+
+}
 //    private Bitmap getThumbnail(Status status) {
 //        return a.gautham.Twinsta.Utils.ThumbnailUtils.createVideoThumbnail(status.getFile().getAbsolutePath(),
 //                3);
 //    }
 
-}

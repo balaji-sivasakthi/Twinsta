@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
+import android.util.Log;
 import android.widget.RelativeLayout;
 
 import androidx.annotation.RequiresApi;
@@ -28,24 +29,19 @@ import java.util.Random;
 import static android.content.Context.NOTIFICATION_SERVICE;
 
 public class Common {
-    private static String mString="WhatsApp/Media/.Statuses";
+
     static final int MINI_KIND = 1;
     static final int MICRO_KIND = 3;
-
-    public static String getmString() {
-        return mString;
-    }
-
-    public static void setmString(String mString) {
-       Common.mString=mString;
-    }
 
     public static final int GRID_COUNT = 2;
 
     private static final String CHANNEL_NAME = "BALAJI";
 
     public static final File STATUS_DIRECTORY = new File(Environment.getExternalStorageDirectory() +
-            File.separator + mString );
+            File.separator + "WhatsApp/Media/.Statuses");
+
+    public static final File STATUS_DIRECTORY_NEW = new File(Environment.getExternalStorageDirectory() +
+            File.separator + "Android/media/com.whatsapp/WhatsApp/Media/.Statuses");
 
     public static String APP_DIR;
 

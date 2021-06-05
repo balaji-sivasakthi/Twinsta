@@ -8,6 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -38,6 +39,7 @@ public class ImageFragment extends Fragment {
     private ImageAdapter imageAdapter;
     private RelativeLayout container;
     private SwipeRefreshLayout swipeRefreshLayout;
+    private TextView messageTextView;
 
     @Nullable
     @Override
@@ -53,6 +55,7 @@ public class ImageFragment extends Fragment {
         progressBar = view.findViewById(R.id.prgressBarImage);
         container = view.findViewById(R.id.image_container);
         swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout);
+        messageTextView = view.findViewById(R.id.messageTextImage);
 
         StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
         StrictMode.setVmPolicy(builder.build());
@@ -75,46 +78,67 @@ public class ImageFragment extends Fragment {
 
         if (Common.STATUS_DIRECTORY.exists()) {
 
-            new Thread(() -> {
-                File[] statusFiles;
-                statusFiles = Common.STATUS_DIRECTORY.listFiles();
-                imagesList.clear();
+            execute(Common.STATUS_DIRECTORY);
 
-                if (statusFiles != null && statusFiles.length > 0) {
+        } else if (Common.STATUS_DIRECTORY_NEW.exists()) {
 
-                    Arrays.sort(statusFiles);
-                    for (File file : statusFiles) {
-                        Status status = new Status(file, file.getName(), file.getAbsolutePath());
-
-                        if (!status.isVideo() && status.getTitle().endsWith(".jpg")) {
-                            imagesList.add(status);
-                        }
-
-                    }
-
-                    handler.post(() -> {
-
-                        imageAdapter = new ImageAdapter(imagesList, container);
-                        recyclerView.setAdapter(imageAdapter);
-                        imageAdapter.notifyDataSetChanged();
-                        progressBar.setVisibility(View.GONE);
-                    });
-
-                } else {
-
-                    handler.post(() -> {
-                        progressBar.setVisibility(View.GONE);
-                        Toast.makeText(getActivity(), "Dir doest not exists", Toast.LENGTH_SHORT).show();
-                    });
-
-                }
-                swipeRefreshLayout.setRefreshing(false);
-            }).start();
+            execute(Common.STATUS_DIRECTORY_NEW);
 
         } else {
-            Toast.makeText(getActivity(), "Cant find WhatsApp Dir", Toast.LENGTH_SHORT).show();
+            messageTextView.setVisibility(View.VISIBLE);
+            messageTextView.setText(R.string.cant_find_whatsapp_dir);
+            Toast.makeText(getActivity(), getString(R.string.cant_find_whatsapp_dir), Toast.LENGTH_SHORT).show();
             swipeRefreshLayout.setRefreshing(false);
         }
 
     }
+
+    private void execute(File wAFolder) {
+        new Thread(() -> {
+            File[] statusFiles;
+            statusFiles = wAFolder.listFiles();
+            imagesList.clear();
+
+            if (statusFiles != null && statusFiles.length > 0) {
+
+                Arrays.sort(statusFiles);
+                for (File file : statusFiles) {
+                    Status status = new Status(file, file.getName(), file.getAbsolutePath());
+
+                    if (!status.isVideo() && status.getTitle().endsWith(".jpg")) {
+                        imagesList.add(status);
+                    }
+
+                }
+
+                handler.post(() -> {
+
+                    if (imagesList.size() <= 0) {
+                        messageTextView.setVisibility(View.VISIBLE);
+                        messageTextView.setText(R.string.no_files_found);
+                    } else {
+                        messageTextView.setVisibility(View.GONE);
+                        messageTextView.setText("");
+                    }
+
+                    imageAdapter = new ImageAdapter(imagesList, container);
+                    recyclerView.setAdapter(imageAdapter);
+                    imageAdapter.notifyDataSetChanged();
+                    progressBar.setVisibility(View.GONE);
+                });
+
+            } else {
+
+                handler.post(() -> {
+                    progressBar.setVisibility(View.GONE);
+                    messageTextView.setVisibility(View.VISIBLE);
+                    messageTextView.setText(R.string.no_files_found);
+                    Toast.makeText(getActivity(), getString(R.string.no_files_found), Toast.LENGTH_SHORT).show();
+                });
+
+            }
+            swipeRefreshLayout.setRefreshing(false);
+        }).start();
+    }
+
 }
